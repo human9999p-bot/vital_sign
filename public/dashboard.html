@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard | ESP32</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  margin:0;
+  background:#0a0f1a;
+  color:#00ffff;
+  font-family:Segoe UI;
+}
+header {
+  padding:15px;
+  text-align:center;
+  font-size:22px;
+  box-shadow:0 0 15px cyan;
+}
+.cards {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:15px;
+  padding:20px;
+}
+.card {
+  background:rgba(0,0,0,.6);
+  padding:20px;
+  border-radius:14px;
+  box-shadow:0 0 20px rgba(0,255,255,.3);
+}
+.value {
+  font-size:40px;
+  text-align:center;
+}
+button {
+  margin:10px;
+  padding:10px 20px;
+  background:#00ffff;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+}
+canvas { height:220px !important; }
+</style>
+</head>
+
+<body>
+
+<script>
+if(localStorage.getItem('auth')!=='1') location.href='/login.html';
+</script>
+
+<header>
+⚡ ESP32 Health Dashboard  
+<button onclick="location.href='manage.html'">Manage Patients</button>
+</header>
+
+<div class="cards">
+  <div class="card">
+    <h3>Heart Rate</h3>
+    <div class="value" id="hr">-- BPM</div>
+  </div>
+  <div class="card">
+    <h3>SpO₂</h3>
+    <div class="value" id="spo">-- %</div>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <canvas id="hrChart"></canvas>
+  </div>
+  <div class="card">
+    <canvas id="spoChart"></canvas>
+  </div>
+</div>
+
+<script>
+let labels=[], hrData=[], spoData=[];
+
+const hrChart=new Chart(hrChartCtx=document.getElementById('hrChart'),{
+  type:'line',
+  data:{labels,datasets:[{label:'HR',data:hrData,borderColor:'#00ffff',fill:true}]}
+});
+const spoChart=new Chart(spoChartCtx=document.getElementById('spoChart'),{
+  type:'line',
+  data:{labels,datasets:[{label:'SpO₂',data:spoData,borderColor:'#ff00ff',fill:true}]}
+});
+
+async function loadData(){
+  const res=await fetch('/api/get');
+  const data=await res.json();
+  if(!data.length) return;
+
+  labels.length=hrData.length=spoData.length=0;
+
+  data.slice(-100).forEach(r=>{
+    labels.push('');
+    hrData.push(r.heartrate);
+    spoData.push(r.spo2);
+  });
+
+  const last=data[data.length-1];
+  document.getElementById('hr').innerText=last.heartrate+' BPM';
+  document.getElementById('spo').innerText=last.spo2+' %';
+
+  hrChart.update();
+  spoChart.update();
+}
+
+setInterval(loadData,2000);
+loadData();
+</script>
+
+</body>
+</html>
